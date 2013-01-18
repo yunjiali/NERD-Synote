@@ -1,7 +1,7 @@
 <html>
 <head>
 <title>Grails Runtime Exception</title>
-<meta name="layout" content="main" />
+<meta name="layout" content="nerd" />
 <style type="text/css">
 .message {
 	border: 1px solid black;

@@ -96,3 +96,22 @@ DailyMotionParser.prototype.getKeywords = function(data,callback)
 	var keywords = data.tags;
 	return callback(keywords,null);
 }
+
+/*
+ * Get video url. YouTube and DailyMotion sometimes have short URL which cannot be recognised by MediaElement player,
+   So we use this function to return a url that can be played by the player
+ * params:
+ * data: json data response from DailyMotion API
+ * callback (url,errorMsg)
+ */
+DailyMotionParser.prototype.getVideoURL = function(data,callback)
+{
+	if(data == null)
+	{
+		return callback(null, "Response data is empty.");
+	}
+	
+	if(data.url === undefined)
+		return callback(null,"Cannot get the url of the resource");
+	return callback(data.url,null);
+}

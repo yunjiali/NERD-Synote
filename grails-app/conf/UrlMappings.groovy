@@ -1,6 +1,6 @@
 class UrlMappings {
     static mappings = {
-		"/sparql"{
+		/*"/sparql"{
 			controller="linkedData"
 			action="sparql"
 		}
@@ -36,16 +36,10 @@ class UrlMappings {
 		      constraints {
 				 // apply constraints here
 			  }
-		  }
-	      "/"(view:"/index")
-	
-	      "/recording/$action?/$id?"{
-				controller="recording"
-				constraints
-						{
-							//position(matches:/[0-9]+/)
-						}
-			}
-		  "500"(view:'/error')
+		}*/
+	    "/"(controller:"nerd",action:"index")
+		"/$nerd/$action?/$id?"(controller:"nerd")
+		"/$controller/$action?/$id?"(view:'/404')
+		"500"(view:'/error')
 	}
 }

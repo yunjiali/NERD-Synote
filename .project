@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>synote_current</name>
+	<name>synote_nerd</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,4 +22,11 @@
 		<nature>org.eclipse.jdt.core.javanature</nature>
 		<nature>org.eclipse.wst.common.project.facet.core.nature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>.link_to_grails_plugins</name>
+			<type>2</type>
+			<locationURI>GRAILS_ROOT/2.1.1/projects/synote/plugins</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>

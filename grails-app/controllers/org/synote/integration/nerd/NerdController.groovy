@@ -29,7 +29,7 @@ import fr.eurecom.nerd.client.schema.*
 
 class NerdController {
 	
-	def beforeInterceptor = [action: this.&checkNerdEnabled]
+	//def beforeInterceptor = [action: this.&checkNerdEnabled]
 	
 	def nerdService
 	def permService
@@ -39,17 +39,10 @@ class NerdController {
 	def securityService
 	def configurationService
 	
-	
-	private checkNerdEnabled()
-	{
-		//def enabled = configurationService.getConfigValue("org.synote.integration.nerd.enabed")
-		//if(enabled.toBoolean())
-		//{
-		//	return true
-		//}
-		//else
-		//	return false
-		return true
+	def index = {
+		def synoteMultimediaServiceURL = configurationService.getConfigValue("org.synote.resource.service.server.url")
+		println synoteMultimediaServiceURL
+		return [mmServiceURL:synoteMultimediaServiceURL]
 	}
 	/*
 	 * Extract named entity using nerd

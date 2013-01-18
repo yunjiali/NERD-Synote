@@ -41,7 +41,7 @@
 	<script type="text/javascript" src="${resource(dir:'js/player',file:"webvtt.parser.js")}"></script>
 	<script type="text/javascript" src="${resource(dir:'js',file:"util.js")}"></script>
 	<!-- For player -->
-	<script type="text/javascript" src="${resource(dir:'mediaelement',file:"mediaelement-and-player.min.js")}"></script>
+	<script type="text/javascript" src="${resource(dir:'mediaelement',file:'mediaelement-and-player.min.js')}"></script>
 	<script type="text/javascript" src="${resource(dir:'js/player',file:"player.timer.js")}"></script>
 	<script type="text/javascript" src="${resource(dir:'js/player',file:"player.multimedia.js")}"></script>
 	<script type="text/javascript" src="${resource(dir:'js/player',file:"player.mediafragment.controller.js")}"></script>
