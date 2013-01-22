@@ -43,6 +43,17 @@ class NerdController {
 		def synoteMultimediaServiceURL = configurationService.getConfigValue("org.synote.resource.service.server.url")
 		return [mmServiceURL:synoteMultimediaServiceURL]
 	}
+	
+	//preview subtitles with named entities
+	def subpreview = {
+		if(!params.videourl)
+		{
+			//some error messages
+			return;
+		}
+		println params.videourl
+		return
+	}
 	/*
 	 * Extract named entity using nerd
 	 * params: extractor, language (default "en"), text

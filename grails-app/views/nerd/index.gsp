@@ -3,6 +3,7 @@
 	<title>NERD Annotation Viewer</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 	<meta name="layout" content="nerd" />
+	<g:urlMappings />
 	<link rel="stylesheet" type="text/css" href="${resource(dir: 'mediaelement', file: 'mediaelementplayer.min.css')}" />
 	<script type="text/javascript" src="${resource(dir:'mediaelement',file:'mediaelement-and-player.min.js')}"></script>
 	<script type="text/javascript" src="${resource(dir:'js/jquery',file:"jquery.maskedinput-1.3.min.js")}"></script>
@@ -15,10 +16,18 @@
 	var mmServiceURL = "${mmServiceURL}";
 	var client = new SynoteMultimediaServiceClient(mmServiceURL);
 	var parser = new MultimediaMetadataParser();
+	var player = null;
+	var videoHtml = '<video id="multimedia_player" width="480" height="320" preload="none"><source src=""/></video>'
 	
 	function initPreview(videourl)
 	{
+		var player_div = $("#multimedia_player_div");
+		player_div.empty();
+
+		player_div.html(videoHtml);
+
 		var player_tag = $("#multimedia_player");
+		
 		player_tag.children("source").attr("src",videourl);
 		//find out the media type by checking the file format
 		
@@ -35,11 +44,12 @@
 			showMsg("The video URL is not valid","error");
 			return;
 		}
-		
+
 		var opts = {
 			videoWidth: 480,
 			videoHeight: 320
 		};
+		
 		player_tag.mediaelementplayer(opts);
 	}
 	
@@ -68,6 +78,7 @@
 			
 			$("#url_submit_btn").button('loading');
 			$("#preview_content").hide();
+			$("#NERDifySubmit_div").hide();
 			$("#preview_loading_div").show();
 			client.getMetadata(url, function(data, errMsg){
 				if(data != null)
@@ -120,7 +131,11 @@
 					});
 
 					parser.getChannel(data,function(channel,errorMsg){
-						if(channel !== undefined)
+						if(errorMsg != null)
+						{
+							$("#channel").text(errorMsg);
+						}
+						else
 						{
 							$("#channel").text(channel);
 						}
@@ -189,12 +204,48 @@
 					
 					initPreview(url);
 					$("#preview_content").show();
+
+					//get subtitlelist
+					client.getSubtitleList(url, function(data, errMsg){
+						if(data!=null)
+						{
+							if(data.total == 0)
+							{
+								$("#subtitles").text("No subtitle available");
+							}
+							else
+							{
+								var subtitlesHtml = "<ul>";
+								var ensubtitleurl = data.list[0].url;
+								for(var i=0;i<data.list.length;i++)
+								{
+									subtitlesHtml += "<li><a href='"+data.list[i].url+"' target='_blank' title='"+data.list[i].language+" subtitle'>"+data.list[i].language+"</a></li>";
+									if(language == "en")
+									{
+										ensubtitleurl = data.list[i].url;
+									}
+								}
+								
+								subtitlesHtml += "</ul>"
+								$("#subtitles").html(subtitlesHtml);
+								//update the link and show the nerdify button
+								var subpreviewurl  = g.createLink({controller: 'nerd', action: 'subpreview', params: {videourl: encodeURIComponent(url), subtitleurl:encodeURIComponent(ensubtitleurl)}});
+								$("#NERDify_a").prop("href",subpreviewurl);
+								$("#NERDifySubmit_div").show();
+							}
+						}
+						else
+						{
+							showMsg(errMsg,"error");
+							$("#form_loading_div").hide();
+						}
+					});
 				}
 				else
 				{
 					showMsg(errMsg,"error");
-					$("#form_loading_div").hide();
 				}
+				$("#form_loading_div").hide();
 				$("#url_submit_btn").button('reset');
 			});
 		});
@@ -241,9 +292,7 @@
 			<div class="span7">
 				<div id="multimedia_player_div">
 				<!-- always use video -->
-					<video id="multimedia_player" width="480" height="320" preload="none">
-						<source src=""/>
-					</video>
+					
 				</div>
 		      	<br/>
 		      	<div class="control-group">
@@ -290,7 +339,18 @@
 					<label for="publicationDate" class="control-label"><b>Publication Date</b></label>
 			      	<div class="controls" id="publicationDate"></div>
 		      	</div>
+		      	<div class="control-group">
+					<label for="subtitles" class="control-label"><b>Subtitles Available</b></label>
+			      	<div class="controls" id="subtitles"></div>
+		      	</div>
 			</div>
+		</div>
+		<div class="row" style="display:none;" id="NERDifySubmit_div">
+			<div class="form-actions" id="controls_div">
+				<div class="pull-right">
+	            	<a class="btn btn-warning" id="NERDify_a" href="" type="submit" data-loading-text="NERDifying">NERDify</a>
+	            </div>
+	        </div>
 		</div>
 	</div>
 </body>

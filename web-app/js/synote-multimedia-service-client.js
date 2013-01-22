@@ -9,7 +9,7 @@ function SynoteMultimediaServiceClient(url)
 	this.getMetadataURL = url +"api/getMetadata";
 	this.getDurationURL = url +"api/getDuration";
 	this.isVideoURL = url+"api/isVideo";
-	this.getSubtitleList = url+"api/getSubtitleList"
+	this.getSubtitleListURL = url+"api/getSubtitleList"
 }
 
 /*
@@ -180,7 +180,7 @@ SynoteMultimediaServiceClient.prototype.getSubtitleList = function(videourl,call
 {
 	$.ajax({
 		   type: "GET",
-		   url: this.getSubtitleList,
+		   url: this.getSubtitleListURL,
 		   data: {videourl:encodeURIComponent(videourl)}, 
 		   timeout:60000, 
 		   dataType: "json",
