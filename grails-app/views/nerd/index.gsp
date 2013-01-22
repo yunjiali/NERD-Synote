@@ -10,17 +10,14 @@
 	<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.9/jquery.validate.min.js"></script>
 	<script type="text/javascript" src="${resource(dir:'js',file:"util.js")}"></script>
 	<script type="text/javascript" src="${resource(dir:'js',file:"synote-multimedia-service-client.js")}"></script>
-	<script type="text/javascript" src="${resource(dir:'js',file:"dailymotion-parser.js")}"></script>
-	<script type="text/javascript" src="${resource(dir:'js',file:"youtube-parser.js")}"></script>
+	<script type="text/javascript" src="${resource(dir:'js',file:"multimedia-metadata-parser.js")}"></script>
 	<script type="text/javascript">
 	var mmServiceURL = "${mmServiceURL}";
 	var client = new SynoteMultimediaServiceClient(mmServiceURL);
-	var dmParser = new DailyMotionParser();
-	var ytParser = new YouTubeParser(); //use it later
-
+	var parser = new MultimediaMetadataParser();
+	
 	function initPreview(videourl)
 	{
-		console.log("videourl:"+videourl);
 		var player_tag = $("#multimedia_player");
 		player_tag.children("source").attr("src",videourl);
 		//find out the media type by checking the file format
@@ -33,8 +30,13 @@
 		{
 			$("#multimedia_player").children("source").attr("type","video/dailymotion");
 		}
-
-		opts = {
+		else
+		{
+			showMsg("The video URL is not valid","error");
+			return;
+		}
+		
+		var opts = {
 			videoWidth: 480,
 			videoHeight: 320
 		};
@@ -63,20 +65,6 @@
 		
 		$("#url_submit_btn").click(function(){
 			var url = $("#url").val();
-			var parser = null;
-			if(isDailyMotionURL(url,true))
-			{
-				parser = dmParser;
-			}
-			else if(isYouTubeURL(url,true))
-			{
-				parser = ytParser
-			}
-			else
-			{
-				showMsg("The video URL is not valid","error");
-				return;
-			}
 			
 			$("#url_submit_btn").button('loading');
 			$("#preview_content").hide();
@@ -90,8 +78,7 @@
 					parser.getDuration(data,function(duration,errorMsg){
 						if(duration != null)
 						{
-							$("#duration_span").val(milisecToString(duration));
-							$("#duration").val(duration);
+							$("#duration").text(milisecToString(duration));
 						}
 						else
 						{
@@ -102,26 +89,104 @@
 					});
 
 					parser.getKeywords(data,function(keywords,errorMsg){
-						if(keywords != null)
+						//console.log(keywords);
+						if(keywords != null && keywords.length > 0)
 						{
-							$("#tags").val(keywords);
+							var tagHtml = "";
+							for(i=0;i<keywords.length;i++)
+							{
+								tagHtml+="<span class='badge badge-tag' style='float:left;margin:3px;'><i class='icon-tag tag-item icon-white'></i>"+keywords[i]+"</span>";
+							}
+							$("#tags").html(tagHtml);
+						}
+						else
+						{
+							$("#tags").text("No tags");
 						}
 					});
 
 					parser.getTitle(data,function(title,errorMsg){
 						if(title != null)
 						{
-							$("#title").val(title);
+							$("#title").text(title);
 						}
 					});
 
 					parser.getDescription(data,function(note,errorMsg){
 						if(note != null)
 						{
-							$("#note").val(note);
+							$("#note").html(note);
 						}
 					});
 
+					parser.getChannel(data,function(channel,errorMsg){
+						if(channel !== undefined)
+						{
+							$("#channel").text(channel);
+						}
+					});
+
+					parser.getCategory(data,function(category,errorMsg){
+						if(errorMsg != null)
+						{
+							$("#category").text(errorMsg);
+						}
+						else
+						{
+							$("#category").text(category);
+						}
+					});
+
+					parser.getLanguage(data,function(language,errorMsg){
+						if(language !== undefined)
+						{
+							$("#language").text(language);
+						}
+					});
+
+					parser.getCreationDate(data,function(creationDate,errorMsg){
+						if(creationDate !== undefined)
+						{
+							$("#creationDate").text(creationDate);
+						}
+					});
+
+					parser.getPublicationDate(data,function(publicationDate,errorMsg){
+						if(publicationDate !== undefined)
+						{
+							$("#publicationDate").text(publicationDate);
+						}
+					});
+					
+					parser.getViews(data,function(views,errorMsg){
+						if(views !== undefined)
+						{
+							$("#views").text(views+" Views");
+						}
+					});
+					
+					parser.getComments(data,function(comments,errorMsg){
+						if(comments !== undefined)
+						{
+							$("#comments").text(comments+" Comments");
+						}
+					});
+
+					parser.getFavorites(data,function(favorites,errorMsg){
+						if(favorites !== undefined)
+						{
+							$("#favorites").text(favorites+" Favorites");
+						}
+					});
+
+					parser.getRatings(data,function(ratings,errorMsg){
+						if(ratings !== undefined)
+						{
+							$("#ratings").text(ratings+" Ratings");
+						}
+					});
+
+					
 					initPreview(url);
 					$("#preview_content").show();
 				}
@@ -171,6 +236,7 @@
 	</div>
 	<!-- Preview player -->
 	<div class="container" id="preview_content" style="display:none;">
+		<h2 id="title"></h2>
 		<div class="row">
 			<div class="span7">
 				<div id="multimedia_player_div">
@@ -179,26 +245,50 @@
 						<source src=""/>
 					</video>
 				</div>
+		      	<br/>
+		      	<div class="control-group">
+					<label for="tags" class="control-label"><b>Tags</b></label>
+			      	<div id="tags"></div>
+		      	</div>
+		      	<br/>
+				<div class="control-group pull-left">
+					<label for="note" class="control-label"><b>Description</b></label>
+			      	<div class="controls" id="note"></div>
+		      	</div>
 			</div>
 			<div class="span5">
 				<div class="control-group">
-					<label for="title" class="control-label"><b><em>*</em>Title</b></label>
-			      	<div class="controls">
-			        	<input type='text' autocomplete="off" class="required span4 resetFields" name='title' id='title'/>
-			      	</div>
+					<label for="duration" class="control-label"><b>Duration</b></label>
+			      	<div class="controls" id="duration"></div>
+		      	</div>	
+		      	<div class="control-group">
+		      		<label for="statistics" class="control-label"><b>Statistics</b></label>
+		      		<div class="controls" id="statistics">
+		      			<span><i class="icon-fire metrics-item"></i><span id="views"></span></span><br/>
+						<span><i class="icon-comment metrics-item"></i><span id="comments"></span></span><br/>
+						<span><i class="icon-star metrics-item"></i><span id="favorites"></span></span><br/>
+						<span><i class="icon-signal metrics-item"></i><span id="ratings"></span></span><br/>
+		      		</div>
+				</div>
+				<div class="control-group">
+					<label for="channel" class="control-label"><b>Channel</b></label>
+			      	<div class="controls" id="channel"></div>
 		      	</div>
 		      	<div class="control-group">
-					<label for="note" class="control-label"><b>Description</b></label>
-			      	<div class="controls">
-			        	<textarea class="input-xlarge span4 resetFields" name='note' id='note' rows="8" id="note"></textarea>
-			      	</div>
+					<label for="category" class="control-label"><b>Category</b></label>
+			      	<div class="controls" id="category"></div>
 		      	</div>
 		      	<div class="control-group">
-					<label for="tags" class="control-label"><b>Tags</b></label>
-			      	<div class="controls">
-			        	<input class="span4 resetFields" name='tags' id='tags' />
-			        	<span class="help-block">Please separate the tags by comma ","</span>
-			      	</div>
+					<label for="language" class="control-label"><b>Language</b></label>
+			      	<div class="controls" id="language"></div>
+		      	</div>
+		      	<div class="control-group">
+					<label for="creationDate" class="control-label"><b>Creation Date</b></label>
+			      	<div class="controls" id="creationDate"></div>
+		      	</div>
+		      	<div class="control-group">
+					<label for="publicationDate" class="control-label"><b>Publication Date</b></label>
+			      	<div class="controls" id="publicationDate"></div>
 		      	</div>
 			</div>
 		</div>

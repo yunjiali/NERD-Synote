@@ -9,6 +9,7 @@ function SynoteMultimediaServiceClient(url)
 	this.getMetadataURL = url +"api/getMetadata";
 	this.getDurationURL = url +"api/getDuration";
 	this.isVideoURL = url+"api/isVideo";
+	this.getSubtitleList = url+"api/getSubtitleList"
 }
 
 /*
@@ -169,7 +170,36 @@ SynoteMultimediaServiceClient.prototype.isVideo = function(videourl,callback)
 	});		
 }
 
-/*Use these information to decide if it is a video*/
+/*
+  get the available subtitles
+* params:
+* videourl: the url of the video
+* callback (data,errorMsg)
+ */
+SynoteMultimediaServiceClient.prototype.getSubtitleList = function(videourl,callback)
+{
+	$.ajax({
+		   type: "GET",
+		   url: this.getSubtitleList,
+		   data: {videourl:encodeURIComponent(videourl)}, 
+		   timeout:60000, 
+		   dataType: "json",
+		   success:function(data,textStatus, jqXHR)
+		   {
+				
+				callback(data, null);
+				return;
+		   },
+		   error:function(jqXHR,textStatus,errorThrown)
+		   {
+			   var resp =$.parseJSON(jqXHR.responseText);
+			   callback(null, resp.message);
+			   return;
+		   }
+	});		
+}
+
+/*Use these information to decide if it is a video
 
 SynoteMultimediaServiceClient.prototype.flash_audio_list = new Array("mp3","aac","m4a","ogg","wav");
 SynoteMultimediaServiceClient.prototype.flash_video_list = new Array("mp4","mov","f4v","flv","3gp","3g2","ogv","webm");
@@ -191,4 +221,4 @@ SynoteMultimediaServiceClient.prototype.all_protocol_list = new Array("http","ht
 
 SynoteMultimediaServiceClient.prototype.playerType = {"flash":0,"silverlight":1,"wmp":2,"html5native":3,"Unknown":99};
 SynoteMultimediaServiceClient.prototype.browserType = {"ie":0,"firefox":10,"safari":20,"googlechrome":30,"opera":40,"unknown":99};
-SynoteMultimediaServiceClient.prototype.platformType = {"windows":0,"linux":10,"mac":20,"unknown":99};
+SynoteMultimediaServiceClient.prototype.platformType = {"windows":0,"linux":10,"mac":20,"unknown":99};*/

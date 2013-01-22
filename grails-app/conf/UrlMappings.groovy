@@ -1,9 +1,10 @@
 class UrlMappings {
     static mappings = {
-		/*"/sparql"{
+		"/sparql"{
 			controller="linkedData"
 			action="sparql"
 		}
+		/*
 		"/resources/$id"{
 			controller="linkedData"
 			action="resources"	

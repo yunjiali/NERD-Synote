@@ -16,7 +16,7 @@
 <#conn> rdf:type sdb:SDBConnection ;	
     sdb:sdbType       "MySQL" ;    # Needed for JDBC URL
     sdb:sdbHost       "localhost" ;
-    sdb:sdbName       "synote_triple_store_dev" ; #dev version of the database
+    sdb:sdbName       "synote_nerd_triple_store_dev" ; #dev version of the database
     sdb:driver        "com.mysql.jdbc.Driver" ;
     sdb:sdbUser		  "synote";
     sdb:sdbPassword	  "synote";

@@ -41,7 +41,6 @@ class NerdController {
 	
 	def index = {
 		def synoteMultimediaServiceURL = configurationService.getConfigValue("org.synote.resource.service.server.url")
-		println synoteMultimediaServiceURL
 		return [mmServiceURL:synoteMultimediaServiceURL]
 	}
 	/*
