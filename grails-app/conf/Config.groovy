@@ -66,7 +66,7 @@ environments {
 			sdb{
 				assembler = "sdb-mysql-innodb-dev.ttl"
 				checkFormattedOnStartUp = false //Just check! Not reformat!
-				emptyOnStartUp = true //empty the triple store on start up
+				emptyOnStartUp = false //empty the triple store on start up
 			}
 		}
     }

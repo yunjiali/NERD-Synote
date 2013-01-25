@@ -19,9 +19,15 @@ import org.synote.config.ConfigurationService
 import org.synote.player.client.WebVTTData
 import org.synote.player.client.PlayerException
 import org.synote.annotation.synpoint.Synpoint
+import org.synote.linkeddata.Vocabularies as V
 
+
+import groovyx.net.http.HTTPBuilder
+import static groovyx.net.http.ContentType.*
+import static groovyx.net.http.Method.*
 
 import java.util.UUID
+import java.net.URLDecoder
 
 import fr.eurecom.nerd.client.*
 import fr.eurecom.nerd.client.type.*
@@ -45,120 +51,83 @@ class NerdController {
 	}
 	
 	//preview subtitles with named entities
-	def subpreview = {
+	def nerdpreview = {
 		if(!params.videourl)
 		{
-			//some error messages
-			return;
+			flash.error = "The url of the video is missing."
+			redirect(action:'index')
+			return
 		}
-		println params.videourl
-		return
+		
+		def videourl = URLDecoder.decode(params.videourl, "utf8")
+		
+		if(!params.subtitleurl)
+		{
+			flash.error = "The url of the subtitle is missing."
+			redirect(action:'index')
+			return
+		}
+		
+		def subtitleurl = URLDecoder.decode(params.subtitleurl, "utf8")
+		
+		def prefixList = V.getVocabularies()
+		StringBuilder builder = new StringBuilder()
+		prefixList.each{p->
+			builder.append("PREFIX "+p[0]+":"+"<"+p[1]+">")
+			builder.append(" ")
+		}
+		
+		def synoteMultimediaServiceURL = configurationService.getConfigValue("org.synote.resource.service.server.url")
+		
+		return [prefixString:builder.toString(), videourl:videourl,subtitleurl:subtitleurl,userBaseURI:linkedDataService.getUserBaseURI(),
+			   resourceBaseURI:linkedDataService.getResourceBaseURI(),mmServiceURL:synoteMultimediaServiceURL]
 	}
-	/*
-	 * Extract named entity using nerd
-	 * params: extractor, language (default "en"), text
-	 */
-	def extractAjax = {
-		def text =""
-		
-		final String NERD_KEY = configurationService.getConfigValue("org.synote.integration.nerd.key")
-		
-		if(!params.resourceId)
+	
+	def getSubtitleAjax = {
+		if(!params.subtitleurl)
 		{
 			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_ID_MISSING, description:"Resource id is missing.")
+				error(stat:APIStatusCode.PARAMS_MISSING, description:"subtitle url is missing.")
 			}
 			return
 		}
 		
-		def resource = Resource.get(params.resourceId?.toLong())
-		if(!resource)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_RESOURCE_NOT_FOUND, description:"Cannot find the resource with id ${params.id}.")
-			}
-			return
-		}
-		
-		if(!params.text)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_TEXT_NOT_FOUND, description:"Extraction text is missing.")
-			}
-			return
-		}
-		
-		def synpoint = resourceService.getSynpointByResource(resource)
-		def multimedia = resourceService.getMultimediaByResource(resource)
-		if(!multimedia)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.MM_NOT_FOUND, description:"Cannot find the multimedia resource.")
-			}
-			return
-		}
-		text =params.text
-		
-		if(!params.extractor)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_EXTRACTOR_NOT_FOUND, description:"Cannot find the extractor.")
-			}
-			return
-		}
-		
-		def nerdExtractor = nerdService.getNerdExtractor(params.extractor)
-		if(!nerdExtractor)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_EXTRACTOR_NOT_FOUND, description:"Cannot find the extractor with name ${params.extractor}.")
-			}
-			return
-		}
-		
-		if(!text || text?.trim()?.size() ==0)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_TEXT_NOT_FOUND, description:"Extraction text cannot be empty.")
-			}
-			return	
-		}
-		
-		//default language is English. We will add more language support later.
-		if(!params.lang)
-			params.lang = "en"
-		try
-		{
+		def subtitleurl = URLDecoder.decode(params.subtitleurl, "utf8")
+		def http = new HTTPBuilder("https://api.dailymotion.com")
+		def srtStr = null
+		http.get(path:subtitleurl, contentType:TEXT){ resp,reader->
 			
-			//old uri:
-			//NERD nerd = new NERD("http://semantics.eurecom.fr/nerdtest/api/",NERD_KEY)
-
-			NERD nerd = new NERD(NERD_KEY)
-			def result= nerd.annotateJSON(nerdExtractor,
-                                   DocumentType.PLAINTEXT,
-                                   text,
-								   GranularityType.OEN,
-								   30L); 	
-			
-			def jsObj = JSON.parse(result)
-			
-			//save json to triple store
-			//println "before"
-			def entities = nerdService.getEntityFromJSON(result)
-			linkedDataService.saveNERDToTripleStroe(entities,multimedia,resource,synpoint,params.extractor)
-			//println "afters"
-			render JSON.parse(result) as JSON
-			return
-		}
-		catch(Exception ex)
-		{
-			throw ex
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_EXTRACTOR_INTERAL_ERROR, description:"Connection failure to the extractor.")
+			String s = reader?.text
+			if(s?.size() > 0)
+			{
+				srtStr = s
+				try
+				{
+					def cuesList = webVTTService.convertToWebVTTObjectFromSRT(srtStr);
+					render cuesList as JSON
+					return
+				}
+				catch(PlayerException playerEx)
+				{
+					render(contentType:"text/json"){
+						error(stat:APIStatusCode.TRANSCRIPT_SRT_INVALID, description:playerEX.getMessage())
+					}
+					return
+				}
+				catch(Exception ex)
+				{
+					render(contentType:"text/json"){
+						error(stat:APIStatusCode.INTERNAL_ERROR, description:ex.getMessage())
+					}
+					return
+				}
 			}
-			return
+			else
+			{
+				render "'"
+				return
+			}
 		}
-		
 	}
 	
 	/*
@@ -287,296 +256,6 @@ class NerdController {
 	}
 	
 	/*
-	 * Save the review (accept or reject the named entity)
-	 */
-	@Secured(['ROLE_ADMIN','ROLE_NORMAL'])
-	def saveReviewAjax = {
-		def user = securityService.getLoggedUser()
-		if(!user)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.AUTHENTICATION_FAILED, description:"User login required.")
-			}
-			return
-		}
-		if(params.rating == null)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.LINKEDDATA_RATING_NOT_FOUND, description:"Rating data is missing.")
-			}
-			return
-		}
-		
-		def rating = Integer.parseInt(params.rating)
-		if(rating == null || rating<0 || rating >1)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.LINKEDDATA_RATING_INVALID, description:"Rating data is invalid.")
-			}
-			return
-		}
-		
-		if(!params.idex)
-		{
-			render(contentType:"text/json"){
-				error(stat:APIStatusCode.NERD_EXTRACTIONID_NOT_FOUND, description:"Extraction id not found.")
-			}
-			return
-		}
-		
-		try
-		{
-			linkedDataService.saveReviewToTripleStore(rating, params.idex, user.id)
-			render(contentType:"text/json"){
-				success(stat:APIStatusCode.SUCCESS, description:"Review saved")
-			}
-			return
-			
-		}
-		catch(Exception ex)
-		{
-			throw ex	
-		}
-	}
-	
-	/*
-	 * DEPRECATED
-	 * This method nerd tag, description, note as separate documents, which may not be efficient
-	 * params: 
-	 * resourceId: the id of the transcript
-	 * extractor: the name of the extractor        
-	 */
-	@Secured(['ROLE_ADMIN','ROLE_NORMAL'])	
-	def nerdit = {
-		//if there is an id, we will use params.id
-		//if no id, we are looking for params.fields
-		if(!params.id && !params.fields)
-		{
-			flash.error = "Cannot find the resource."
-			redirect(controller:'user',action:'index')
-			return	
-		}
-		
-		if(!params.extractor || params.list('extractor')?.size() ==0)
-		{
-			flash.error = "No extractor is selected."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		def idList = []
-		if(params.id)
-		{
-			idList << params.id.toLong()	
-		}
-		else if(params.fields)
-		{
-			
-			params.list('fields').each{ f->	
-				idList << f.toLong()
-			}
-			
-		}
-		
-		if(idList.size() == 0)
-		{
-			flash.error = "No resource is indicated."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		def resourceList = []
-		def extractors = []
-		
-		for(int n=0;n<idList.size();n++)
-		{
-			def i = idList.get(n)
-			def resource = Resource.get(i)
-			if(!resource)
-			{
-				flash.error = "Cannot find the resource with id ${i}."
-				redirect(controller:'user',action:'index')
-				return
-			}
-			
-			def textField = nerdService.getTextFromResource(resource)
-			
-			extractors = params.list('extractor')
-			
-			def item = [
-					id: i,
-					field:textField.field,
-					text:textField.text,
-				]
-			
-			resourceList << item
-		}
-		
-		def results = [rows:resourceList,extractors:extractors] as Map
-		return [resourceList:results]
-	}
-	
-	/*
-	 * This method is very similar to nerdit, but we treat the input as just one document
-	 * It saves time because we don't need to send multiple documents related to the same media fragment,
-	 * but the NIF start and end character won't be useful anymore because we have mixed up the documents
-	 * 
-	 * params.id is a MultimediaResource, SynmarkResource or WebVTTCue, which you can find a synpoint for
-	 */
-	def nerditone = {
-		if(!params.id)
-		{
-			flash.error = "Cannot find the resource."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		if(!params.fields)
-		{
-			flash.error = "No field is selected."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		if(!params.extractor || params.list('extractor')?.size() ==0)
-		{
-			flash.error = "No extractor is selected."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		def idList = []
-		params.list('fields').each{ f->
-			idList << f.toLong()
-		}
-		
-		if(idList.size() == 0)
-		{
-			flash.error = "No resource is indicated."
-			redirect(controller:'user',action:'index')
-			return
-		}
-		
-		//def resourceList = []
-		def extractors = params.list('extractor')
-		StringBuilder strBuilder = new StringBuilder()
-		//String eol = System.getProperty("line.separator")
-		for(int n=0;n<idList.size();n++)
-		{
-			def i = idList.get(n)
-			def resource = Resource.get(i)
-			if(!resource)
-			{
-				flash.error = "Cannot find the resource with id ${i}."
-				redirect(controller:'user',action:'index')
-				return
-			}
-			
-			def textField = nerdService.getTextFromResource(resource)
-			
-			strBuilder.append(textField.text)
-			strBuilder.append(",")
-		}
-		
-		def results = [text:strBuilder.toString(),extractors:extractors] as Map
-		return [textResource:results, resourceId:params.id]
-	}
-	
-	def nerdmm = { 
-		def multimediaResource 	= MultimediaResource.get(params.id)
-		
-		if(!multimediaResource)
-		{
-			flash.error = "Cannot find the recording"
-			redirect(action:'index', controller:'user')
-			return	
-		}
-		
-		def perm = permService.getPerm(multimediaResource)
-		if(perm?.val <=0)
-		{
-			flash.error = "Access denied! You don't have permission to access this recording"
-			redirect(controller:'user',action: 'index')
-			return
-		}
-		
-		return [multimedia:multimediaResource]
-	}
-	
-	/*
-	 * Nerd synmark
-	 */
-	def nerdsmk={
-		def synmarkResource = SynmarkResource.get(params.id)
-		
-		if(!synmarkResource)
-		{
-			flash.error = "Cannot find the synmark."
-			redirect(action:'index', controller:'user')
-			return
-		}
-		
-		
-		def anno = ResourceAnnotation.findBySource(synmarkResource)
-		if(!anno || !anno.target)
-		{
-			flash.error = "Cannot find the annotation."
-			redirect(action:'index', controller:'user')
-			return
-		}
-		def perm = permService.getPerm(anno.target)
-		if(perm?.val <=0)
-		{
-			flash.error = "Access denied! You don't have permission to access this synmark."
-			redirect(controller:'user',action: 'index')
-			return
-		}
-		
-		return [synmark:synmarkResource]
-	}
-	
-	/*
-	 * Nerd WebVTT Cue
-	 */
-	def nerdcue = {
-		def cue = WebVTTCue.get(params.id)
-		if(!cue)
-		{
-			flash.error = "Cannot find the transcript block."
-			redirect(action:'index', controller:'user')
-			return
-		}
-		
-		def anno = ResourceAnnotation.findBySource(cue.webVTTFile)
-		
-		if(!anno || !anno.target)
-		{
-			flash.error = "Cannot find the annotation."
-			redirect(action:'index', controller:'user')
-			return
-		}
-		def perm = permService.getPerm(anno.target)
-		if(perm?.val <=0)
-		{
-			flash.error = "Access denied! You don't have permission to access this transcript block."
-			redirect(controller:'user',action: 'index')
-			return
-		}
-		
-		def c = [
-			id:cue.id,
-			//owner_name:r.owner.userName, Don't need owner_name, it's you!
-			text:webVTTService.getCueText(cue.content),
-			speaker: webVTTService.getSpeaker(cue.content),
-			settings: cue.getCueSettings(),
-			//start: cue.getStart() !=null?TimeFormat.getInstance().toString(cue.getStart()):"unknown",
-			//end:cue.getEnd() !=null?TimeFormat.getInstance().toString(cue.getEnd()):"unknown",
-			//thumbnail:cue.getThumbnail()
-		]
-		return [cue:c]
-	}
-	
-	/*
 	 * Nerd the subtitle as srt file without asking users to choose extractors
 	 * displaying the result similar to nerditone
 	 */
@@ -613,55 +292,5 @@ class NerdController {
 	
 		return [textResource:results,resourceId:transcript.id, multimedia:multimedia]
 		
-	}
-	
-	/*
-	 * list all the named entities about a resource
-	 */
-	@Secured(['ROLE_ADMIN','ROLE_NORMAL'])
-	def listne = {
-		
-		def user = securityService.getLoggedUser()
-		if(!user)
-		{
-			flash.error = "User login required"
-			redirect(action:'auth', controller:'login')
-			return
-		}
-		
-		if(!params.id)
-		{
-			flash.error = "Cannot find resource id."
-			redirect(action:'index', controller:'user')
-			return
-		}
-		
-		//Here it must be a compouned resource,i.e. TranscriptResource, Synmark or MultimediaResource
-		def resource = CompoundResource.get(params.id.toLong())
-		if(!resource)
-		{
-			flash.error = "Cannot find the resource with id ${params.id}"
-			redirect(action:'index', controller:'user')
-			return
-		}
-		
-		def jsObj = linkedDataService.getNEAsJSON(resource,user)
-		def nes = [:]
-		jsObj.each { i, data -> 
-			if(i == "results")
-			{
-				ExtractorType.values().each{val->
-					String extractor_name = nerdService.getNerdExtractorName(val)
-					def bs = data.bindings.findAll{it.extr.value == extractor_name}
-					nes.put(extractor_name, bs)	
-				}
-			}
-		}
-		
-		//nes.opencalais.each{z->
-		//	println "##################:"+z.rating?.value
-		//}
-		
-		return [nes:nes,res:resource]
 	}
 }

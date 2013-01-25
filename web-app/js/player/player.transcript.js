@@ -719,7 +719,7 @@ var Transcript = Base.extend({
 	},
 	refresh:function(callback) //Add a callback function
 	{
-		var getTranscriptsURL = g.createLink({controller:'recording', action:'getTranscriptsAjax'});
+		var getTranscriptsURL = g.createLink({controller:'nerd', action:'getSubtitleAjax'}); //temporal solution
 		var transcripts_div = this.outer_container;
 		var transcripts_content_div = this.inner_container;
 		var multimediaId = this.recording.id;
@@ -728,7 +728,8 @@ var Transcript = Base.extend({
 		$.ajax({
 			   type: "GET",
 			   url: getTranscriptsURL,
-			   data:{multimediaId:multimediaId,type:"json"},
+			   //data:{multimediaId:multimediaId,type:"json"},
+			   data:{subtitleurl:subtitleurl},
 			   dataType: "json",
 			   //Yunjia: Add a beforeSend function to display the loading message
 			   beforeSend:function(jqXHR, settings)
@@ -737,6 +738,7 @@ var Transcript = Base.extend({
 			   },
 			   success:function(data)
 			   {
+				   //console.log(data);
 				   transcript.refreshTranscripts(data);
 			   },
 			   complete:function(jqXHR, textStatus)

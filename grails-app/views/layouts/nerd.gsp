@@ -37,8 +37,8 @@
 				    	<a href="${resource(dir: '/')}" title="home">
 				    	<i class="icon-home icon-white"></i>Home </a>
 				    </li>
-					<li><g:link controller="user" action="help" target="_blank" title="help">
-						<i class="icon-info-sign icon-white"/></i>Help</g:link>
+					<li><a href="http://nerd.eurecom.fr/documentation" target="_blank" title="documentation">
+						<i class="icon-info-sign icon-white"/></i>Documentation</a>
 					</li>
 				</ul>
 			</div>

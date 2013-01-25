@@ -229,7 +229,8 @@
 								subtitlesHtml += "</ul>"
 								$("#subtitles").html(subtitlesHtml);
 								//update the link and show the nerdify button
-								var subpreviewurl  = g.createLink({controller: 'nerd', action: 'subpreview', params: {videourl: encodeURIComponent(url), subtitleurl:encodeURIComponent(ensubtitleurl)}});
+								var subpreviewurl  = g.createLink({controller: 'nerd', action: 'nerdpreview', 
+									params: {videourl: encodeURIComponent(url), subtitleurl:encodeURIComponent(ensubtitleurl)}});
 								$("#NERDify_a").prop("href",subpreviewurl);
 								$("#NERDifySubmit_div").show();
 							}
@@ -264,6 +265,7 @@
 	</div>
 	<hr/>
 	<div id="multimediaCreateForm_div">
+		<g:render template="/common/message" />
 		<div id="error_msg_div"></div>
 		<g:form name='multimediaCreateForm'>
 			<fieldset>
@@ -348,7 +350,7 @@
 		<div class="row" style="display:none;" id="NERDifySubmit_div">
 			<div class="form-actions" id="controls_div">
 				<div class="pull-right">
-	            	<a class="btn btn-warning" id="NERDify_a" href="" type="submit" data-loading-text="NERDifying">NERDify</a>
+	            	<a class="btn btn-warning" target="_blank" id="NERDify_a" href="" type="submit" data-loading-text="NERDifying">NERDify</a>
 	            </div>
 	        </div>
 		</div>

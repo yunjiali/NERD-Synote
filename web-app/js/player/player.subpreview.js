@@ -10,7 +10,7 @@ var timer;
 
 function initSynotePlayer(recording)
 {
-	var multimediaId = recording.id
+	//var multimediaId = recording.id
 	//default settings of screen: search bar is hidden
 	
 	//$("#player_help_btn").click(function(){
@@ -18,7 +18,7 @@ function initSynotePlayer(recording)
 	//	window.open(url,"Synote Player Help");
 	//});
 	
-	$("#description_show_btn").click(function(){
+	/*$("#description_show_btn").click(function(){
 		if($(this).text() == "more")
 		{
 			$("#tags_description_div").removeClass("description-brief").addClass("description-full");
@@ -29,7 +29,7 @@ function initSynotePlayer(recording)
 			$("#tags_description_div").removeClass("description-full").addClass("description-brief");
 			$(this).text("more");
 		}
-	});
+	});*/
 	
     multimedia = new MediaElementJSPlayer(recording,$("#recording_content_div"),$("#multimedia_player_div"));
     multimedia.initPlayer(function(msg,error){
@@ -46,7 +46,7 @@ function initSynotePlayer(recording)
     		mdHelper.setMediaObject($("#recording_content_div"),recording.isVideo == 'true'?true:false);
     		
     		//Init the control buttons on slides bar
-    		$("#nav_play_btn").bind('click',{},function(){
+    		/*$("#nav_play_btn").bind('click',{},function(){
     			multimedia.play();
     		});
     		$("#nav_pause_btn").bind('click',{},function(){
@@ -60,7 +60,7 @@ function initSynotePlayer(recording)
     		});
     		$("#nav_forward_btn").bind('click',{},function(){
     			multimedia.forward();
-    		});
+    		});*/
     		if(!isiPad())
     		{	
 	    		if(multimedia.autoStart === true)

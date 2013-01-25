@@ -45,6 +45,7 @@ import org.apache.commons.logging.LogFactory
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
+import java.util.UUID
 
 class WebVTTService {
 
@@ -631,6 +632,91 @@ class WebVTTService {
 	   }
    }
    
+   def convertToWebVTTObjectFromSRT(String srtStr)
+   {
+	   //both \n\n and \r\n\r\n could be separators of srt items
+	   String[] srtItems1 = srtStr.split("\\r\\n\\r\\n");
+	   String[] srtItems2 = srtStr.split("\\n\\n");
+	   String[] srtItems = srtItems1?.size() >= srtItems2?.size()?srtItems1:srtItems2
+	   def cueList = []
+	   //println "allsize:"+srtItems.size()
+	   
+	   if(srtItems.length > 0)
+	   {
+		   def emptyLines = 0
+		   for(int i=0;i<srtItems.length;i++)
+		   {
+			   //split a srt block into 3 parts
+			   //first the index
+			   //second the time
+			   //third the text
+			   if(srtItems[i].length() == 0)
+			   {
+				   continue
+			   }
+			   String[] srtContent =srtItems[i].split("\\n",3);
+			   //println "size:"+srtContent.size()
+			   //srtContent.each{
+			   //	println "srtContent:"+it
+			   //}
+			   
+			   if(srtContent.length == 3 || srtContent.length ==2)
+			   {
+				   int seqCount = Integer.parseInt(srtContent[0]?.trim())-emptyLines //the index for srt
+				   int startTime=0;
+				   int endTime=0;
+				   
+				   //Check the srt time
+				   String[] times = srtContent[1]?.trim().split("-->");
+				   if(times.length == 2)
+				   {
+					   startTime = playerService.getSRTFormatTime(times[0]);
+					   endTime = playerService.getSRTFormatTime(times[1]);
+					   if(endTime == -1 || startTime == -1 || startTime > endTime)
+					   {
+						   //println "1"
+						   throw new PlayerException(APIStatusCode.TRANSCRIPT_DRAFT_INVALID,"SRT parsing error:  The time format at index "+ String.valueOf(i)+" is bad formatted.");
+					   }
+				   }
+				   else
+				   {
+					   throw new PlayerException(APIStatusCode.TRANSCRIPT_DRAFT_INVALID, "SRT parsing error:  The time format at index "+ String.valueOf(i)+" is bad formatted.");
+				   }
+				   
+				   
+				   if(srtContent.length == 3)
+				   {
+					   String text = srtContent[2]?.trim()
+					   if(text?.trim().size() >0)
+					   {
+						   def sourceStart = seqCount
+						   def targetStart = startTime
+						   def targetEnd = endTime
+						   String uuid = UUID.randomUUID().toString()
+						   WebVTTCueData cue = new WebVTTCueData(uuid,seqCount, startTime, endTime, text,"",null) //no cueSettngs in SRT
+						   cueList << cue
+					   }
+					   else
+						   emptyLines++
+				   }
+				   else if(srtContent.length == 2) //only index and time interval, without text
+				   {
+					   emptyLines++
+				   }
+			   }
+			   else //shouldn't throw exception here, there might be possibility that the text is empty
+			   {
+				   throw new PlayerException(APIStatusCode.TRANSCRIPT_DRAFT_INVALID,"SRT parsing error: The content at index "+ String.valueOf(i)+" is bad formatted.");
+			   }
+		   }
+	   }
+	   else
+	   {
+		   throw new PlayerException(APIStatusCode.TRANSCRIPT_DRAFT_INVALID,"SRT parsing error: The .srt file is not valid.");
+	   }
+	   
+	   return cueList
+   }
    /*
     * Create a new cue from cueJSON (WebVTTCueData)
     * 

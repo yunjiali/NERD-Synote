@@ -1,8 +1,8 @@
 <html>
 <head>
-<title>Synote Sparql Query Interface</title>
+<title>Sparql Query Editor</title>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<meta name="layout" content="main" />
+<meta name="layout" content="nerd" />
 <g:urlMappings/>
 <script type="text/javascript" src="${resource(dir: 'js/jquery', file: 'jquery.form.js')}"></script>
 <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.9/jquery.validate.min.js"></script>
@@ -98,6 +98,9 @@ $(document).ready(function(){
 </head>
 <body>
 <div class="container">
+	<br/>
+	<h2>SPARQL Query Editor</h2>
+	<br/>
 	<div class="row">
 		<form id="query_form" name="query_form" method="GET">
 		<fieldset>

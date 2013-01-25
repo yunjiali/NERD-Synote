@@ -30,41 +30,44 @@ function NerdClient(sparqlEndpoint,prefixString)
 	this.sparqlEndpoint = sparqlEndpoint;
 	this.queryPrefixString = prefixString;
 	this.queryEntitesCountByCategory = this.queryPrefixString +
-		" SELECT ?type (COUNT(?entity) as ?eCount)"+
+		" SELECT ?type (COUNT(?entity) as ?eCount) "+
 		" WHERE"+
 		" {"+
-		"  ?anno rdf:type oac:Annotation ."+
-		"   ?anno oac:hasTarget ?frag ."+
-		"   <"+resourceBaseURI+recording.id+"> ma:hasFragment ?frag."+
-		"   ?anno oac:hasBody ?entity ."+
+		"  ?anno rdf:type oa:Annotation ."+
+		"   ?anno oa:hasTarget ?frag ."+
+		"   ?frag rdf:type nsa:TemporalFragment ."+
+		"   ?frag ma:isFragmentOf ?mr."+
+		"   ?mr ma:locator <"+recording.url+">."+
+		"   ?anno oa:hasBody ?entity ."+
 		"   ?entity rdf:type ?type."+
-		"   ?type rdfs:label 'nerdType'."+
+		"   Filter contains(str(?type),'http://nerd.eurecom.fr/ontology#')"+
 		" }"+
 		" Group by ?type";
-	this.queryReviewOptional = user.id !== -1?"OPTIONAL{"+
-							"?anno review:hasReview ?rev."+
-							"?rev review:reviewer <"+userBaseURI+user.id+">;"+
-							"review:rating ?rating.}":""; //if not logged, don't display the review data
+	//this.queryReviewOptional = user.id !== -1?"OPTIONAL{"+
+	//						"?anno review:hasReview ?rev."+
+	//						"?rev review:reviewer <"+userBaseURI+user.id+">;"+
+	//						"review:rating ?rating.}":""; //if not logged, don't display the review data
 							
 	this.queryListNamedEntities = this.queryPrefixString +
-		" SELECT Distinct ?idex ?entity ?label ?beginIndex ?endIndex ?type ?start ?end ?rating "+
+		" SELECT Distinct ?idex ?entity ?label ?beginIndex ?endIndex ?type ?start ?end "+
 		" WHERE"+
 		" {"+
-		"   ?anno rdf:type oac:Annotation ."+
-		"   ?anno dc:identifier ?idex ."+
-		"   ?anno oac:hasTarget ?frag ."+
-		"   <"+resourceBaseURI+recording.id+"> ma:hasFragment ?frag."+
+		"   ?anno rdf:type oa:Annotation ."+
+		"   ?anno oa:hasBody ?entity ."+
+		"   ?entity dc:identifier ?idex ."+
+		"   ?anno oa:hasTarget ?frag ."+
+		"   ?frag rdf:type nsa:TemporalFragment ."+
+		"   ?frag ma:isFragmentOf ?mr."+
+		"   ?mr ma:locator <http://www.dailymotion.com/video/28783389>."+
 		"   ?frag nsa:temporalStart ?start."+
 		"   ?frag nsa:temporalEnd ?end."+
-		"   ?anno oac:hasBody ?entity ."+
-		//"   ?entity rdfs:label ?label."+
-		"   ?string str:sourceString ?label."+
-		"   ?anno opmv:wasDerivedFrom ?string."+
-		"   ?string str:beginIndex ?beginIndex ."+
-		"   ?string str:endIndex ?endIndex ."+
+		"   ?anno oa:hasTarget ?substr ."+
+		"   ?substr rdf:type str:OffsetBasedString."+
+		"   ?substr str:beginIndex ?beginIndex ."+
+		"   ?substr str:endIndex ?endIndex ."+
 		"   ?entity rdf:type ?type ."+
-		"   ?type rdfs:label 'nerdType' ."+
-		this.queryReviewOptional+
+		"   ?entity rdfs:label ?label ."+
+		"   Filter contains(str(?type),'http://nerd.eurecom.fr/ontology#')"+
 		" }"+
 		" order by ?beginIndex";
 	
@@ -167,8 +170,9 @@ NerdClient.prototype.getEntitesCountByCategory = function()
 		   			var count = 0;
 		   			for(var k=0;k<data.results.bindings.length;k++)
 		   			{
-						if(data.results.bindings[k].type!= null && data.results.bindings[k].type.value == t)
+						if(data.results.bindings[k].type != null && data.results.bindings[k].type.value == t)
 						{
+							
 							count = data.results.bindings[k].eCount.value; 
 							break;
 						}
@@ -180,7 +184,6 @@ NerdClient.prototype.getEntitesCountByCategory = function()
 						text: nerdType+ " ("+count+" entities)"
 					}).addClass("nerd-label "+highlightClass);
 					type_span.appendTo(nerd_div);
-					
 					//initialise the table
 					var nerd_table = $("#nerd_"+nerdType.toLowerCase()+"_table");
 					var row_count = parseInt(count / 2);

@@ -106,7 +106,7 @@ var MultimediaBase = Base.extend({
 				old_text+=" to "+et;
 			}
 			$("#control_mf").text(old_text);
-			$("#control_mf").show();
+			$("#mf_info_div").show();
 			$("#control_mf").click(function(){
 				//Player from somewhere
 				ctrler.start_playback();
